@@ -1,0 +1,11 @@
+package com.sharpcj.dreammusic.core.navigation
+
+import androidx.navigation3.runtime.NavKey
+
+sealed interface DreamMusicNavKey : NavKey {
+    data object Library : DreamMusicNavKey
+    data object Discover : DreamMusicNavKey
+    data object Search : DreamMusicNavKey
+    data object Settings : DreamMusicNavKey
+    data object Player : DreamMusicNavKey
+}

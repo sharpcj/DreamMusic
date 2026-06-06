@@ -1,0 +1,20 @@
+package com.sharpcj.dreammusic
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import com.sharpcj.dreammusic.core.designsystem.theme.DreamMusicTheme
+import com.sharpcj.dreammusic.core.navigation.DreamMusicApp
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            DreamMusicTheme {
+                DreamMusicApp()
+            }
+        }
+    }
+}
