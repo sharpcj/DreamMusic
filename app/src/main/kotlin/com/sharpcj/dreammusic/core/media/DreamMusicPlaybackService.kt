@@ -1,11 +1,14 @@
 package com.sharpcj.dreammusic.core.media
 
+import android.app.PendingIntent
+import android.content.Intent
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
 import androidx.media3.session.MediaSession.ControllerInfo
+import androidx.media3.session.MediaSessionService
+import com.sharpcj.dreammusic.MainActivity
 
 class DreamMusicPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
@@ -13,7 +16,9 @@ class DreamMusicPlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val player = ExoPlayer.Builder(this).build()
-        mediaSession = MediaSession.Builder(this, player).build()
+        mediaSession = MediaSession.Builder(this, player)
+            .setSessionActivity(createSessionActivityPendingIntent())
+            .build()
     }
 
     override fun onStartCommand(intent: android.content.Intent?, flags: Int, startId: Int): Int {
@@ -72,11 +77,27 @@ class DreamMusicPlaybackService : MediaSessionService() {
             )
             .build()
 
+    private fun createSessionActivityPendingIntent(): PendingIntent {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            this,
+            SESSION_ACTIVITY_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
     private fun playMediaItems(mediaItems: List<MediaItem>, startIndex: Int) {
         mediaSession?.player?.run {
             setMediaItems(mediaItems, startIndex, 0L)
             prepare()
             play()
         }
+    }
+
+    private companion object {
+        const val SESSION_ACTIVITY_REQUEST_CODE = 1001
     }
 }

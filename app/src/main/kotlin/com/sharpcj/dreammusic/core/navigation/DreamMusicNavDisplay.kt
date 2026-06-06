@@ -12,6 +12,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import com.sharpcj.dreammusic.core.permissions.NotificationPermissionEffect
 import com.sharpcj.dreammusic.feature.discover.DiscoverScreen
 import com.sharpcj.dreammusic.feature.library.LibraryScreen
 import com.sharpcj.dreammusic.feature.player.MiniPlayer
@@ -32,6 +33,8 @@ fun DreamMusicApp(
             backStack.add(DreamMusicNavKey.Player)
         }
     }
+
+    NotificationPermissionEffect()
 
     Scaffold(
         bottomBar = {
