@@ -71,8 +71,19 @@ class PlayerViewModel @Inject constructor(
 
     fun seekTo(positionMillis: Long) {
         val player = controller ?: return
-        player.seekTo(positionMillis.coerceAtLeast(0L))
+        val duration = player.duration.takeIf { it > 0 }
+        val targetPosition = if (duration != null) {
+            positionMillis.coerceIn(0L, duration)
+        } else {
+            positionMillis.coerceAtLeast(0L)
+        }
+        player.seekTo(targetPosition)
         updateFrom(player)
+    }
+
+    fun seekBy(offsetMillis: Long) {
+        val player = controller ?: return
+        seekTo(player.currentPosition + offsetMillis)
     }
 
     fun playQueueItem(index: Int) {

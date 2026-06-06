@@ -16,10 +16,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -51,7 +57,10 @@ fun PlayerScreen(
         }
 
         item {
-            PlayerProgress(uiState = uiState)
+            PlayerProgress(
+                uiState = uiState,
+                onSeekTo = viewModel::seekTo,
+            )
         }
 
         uiState.errorMessage?.let { message ->
@@ -68,7 +77,9 @@ fun PlayerScreen(
             PlaybackControls(
                 uiState = uiState,
                 onPrevious = viewModel::skipToPrevious,
+                onRewind = { viewModel.seekBy(-SEEK_STEP_MILLIS) },
                 onPlayPause = viewModel::playOrPause,
+                onForward = { viewModel.seekBy(SEEK_STEP_MILLIS) },
                 onNext = viewModel::skipToNext,
                 onStop = viewModel::stop,
                 onRefresh = viewModel::refresh,
@@ -147,7 +158,9 @@ private fun NowPlaying(uiState: PlayerUiState) {
 private fun PlaybackControls(
     uiState: PlayerUiState,
     onPrevious: () -> Unit,
+    onRewind: () -> Unit,
     onPlayPause: () -> Unit,
+    onForward: () -> Unit,
     onNext: () -> Unit,
     onStop: () -> Unit,
     onRefresh: () -> Unit,
@@ -188,6 +201,25 @@ private fun PlaybackControls(
             Text("停止")
         }
         OutlinedButton(onClick = onRefresh) { Text("刷新") }
+    }
+
+    Row(
+        modifier = Modifier.padding(top = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedButton(
+            onClick = onRewind,
+            enabled = uiState.isControllerReady && uiState.durationMillis > 0L,
+        ) {
+            Text("快退 10 秒")
+        }
+        OutlinedButton(
+            onClick = onForward,
+            enabled = uiState.isControllerReady && uiState.durationMillis > 0L,
+        ) {
+            Text("快进 10 秒")
+        }
     }
 }
 
@@ -297,31 +329,57 @@ private fun QueueItemRow(
 }
 
 @Composable
-private fun PlayerProgress(uiState: PlayerUiState) {
-    val progress = if (uiState.durationMillis > 0L) {
-        (uiState.currentPositionMillis.toFloat() / uiState.durationMillis.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
+private fun PlayerProgress(
+    uiState: PlayerUiState,
+    onSeekTo: (Long) -> Unit,
+) {
+    val canSeek = uiState.isControllerReady && uiState.durationMillis > 0L
+    var isDragging by remember { mutableStateOf(false) }
+    var sliderPosition by remember { mutableFloatStateOf(uiState.currentPositionMillis.toFloat()) }
+
+    LaunchedEffect(uiState.currentPositionMillis, uiState.durationMillis) {
+        if (!isDragging) {
+            sliderPosition = uiState.currentPositionMillis.toFloat()
+        }
     }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
     ) {
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        if (canSeek) {
+            Slider(
+                value = sliderPosition.coerceIn(0f, uiState.durationMillis.toFloat()),
+                onValueChange = { value ->
+                    isDragging = true
+                    sliderPosition = value
+                },
+                onValueChangeFinished = {
+                    isDragging = false
+                    onSeekTo(sliderPosition.toLong())
+                },
+                valueRange = 0f..uiState.durationMillis.toFloat(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            LinearProgressIndicator(
+                progress = { 0f },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(formatDuration(uiState.currentPositionMillis), style = MaterialTheme.typography.bodySmall)
+            val visiblePosition = if (isDragging) sliderPosition.toLong() else uiState.currentPositionMillis
+            Text(formatDuration(visiblePosition), style = MaterialTheme.typography.bodySmall)
             Text(formatDuration(uiState.durationMillis), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
+
+private const val SEEK_STEP_MILLIS = 10_000L
 
 private fun formatDuration(durationMillis: Long): String {
     val totalSeconds = durationMillis.coerceAtLeast(0) / 1_000
