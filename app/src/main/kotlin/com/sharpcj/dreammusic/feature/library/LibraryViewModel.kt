@@ -92,6 +92,22 @@ class LibraryViewModel @Inject constructor(
         playbackController.playQueue(songs = songs.ifEmpty { listOf(song) }, startIndex = startIndex)
     }
 
+    fun playQueue(songs: List<LocalSong>, startIndex: Int = 0) {
+        playbackController.playQueue(songs = songs, startIndex = startIndex)
+    }
+
+    fun playFromQueue(song: LocalSong, songs: List<LocalSong>) {
+        val queue = songs.ifEmpty { listOf(song) }
+        val startIndex = queue.indexOfFirst { it.id == song.id }.takeIf { it >= 0 } ?: 0
+        playbackController.playQueue(songs = queue, startIndex = startIndex)
+    }
+
+    fun groupSongs(mode: LibraryGroupMode, title: String): List<LocalSong> = when (mode) {
+        LibraryGroupMode.None -> uiState.value.songs
+        LibraryGroupMode.Artist -> uiState.value.songs.filter { it.groupArtist() == title }
+        LibraryGroupMode.Album -> uiState.value.songs.filter { it.groupAlbum() == title }
+    }
+
     private data class RefreshState(
         val isRefreshing: Boolean = false,
         val lastRefreshCount: Int? = null,
@@ -111,9 +127,13 @@ class LibraryViewModel @Inject constructor(
 
     private fun List<LocalSong>.groupBy(mode: LibraryGroupMode): List<LibrarySongGroup> = when (mode) {
         LibraryGroupMode.None -> listOf(LibrarySongGroup(title = "全部歌曲", songs = this))
-        LibraryGroupMode.Artist -> groupBy { it.artist.ifBlank { "未知艺术家" } }.toSongGroups()
-        LibraryGroupMode.Album -> groupBy { it.album.ifBlank { "未知专辑" } }.toSongGroups()
+        LibraryGroupMode.Artist -> groupBy { it.groupArtist() }.toSongGroups()
+        LibraryGroupMode.Album -> groupBy { it.groupAlbum() }.toSongGroups()
     }
+
+    private fun LocalSong.groupArtist(): String = artist.ifBlank { "未知艺术家" }
+
+    private fun LocalSong.groupAlbum(): String = album.ifBlank { "未知专辑" }
 
     private fun Map<String, List<LocalSong>>.toSongGroups(): List<LibrarySongGroup> =
         entries

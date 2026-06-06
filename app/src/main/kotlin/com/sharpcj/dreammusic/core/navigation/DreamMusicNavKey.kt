@@ -8,4 +8,9 @@ sealed interface DreamMusicNavKey : NavKey {
     data object Search : DreamMusicNavKey
     data object Settings : DreamMusicNavKey
     data object Player : DreamMusicNavKey
+
+    data class LibraryGroupDetail(
+        val groupModeName: String,
+        val groupTitle: String,
+    ) : DreamMusicNavKey
 }

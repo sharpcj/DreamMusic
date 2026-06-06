@@ -33,6 +33,7 @@ import com.sharpcj.dreammusic.core.model.LocalSong
 @Composable
 fun LibraryScreen(
     onOpenPlayer: () -> Unit,
+    onOpenGroup: (LibraryGroupMode, String) -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -84,7 +85,9 @@ fun LibraryScreen(
                 )
                 SongList(
                     groups = uiState.songGroups,
+                    groupMode = uiState.groupMode,
                     showGroupHeaders = uiState.groupMode != LibraryGroupMode.None,
+                    onGroupClick = onOpenGroup,
                     onSongClick = viewModel::play,
                 )
             }
@@ -179,14 +182,20 @@ private fun ModeButton(text: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 private fun SongList(
     groups: List<LibrarySongGroup>,
+    groupMode: LibraryGroupMode,
     showGroupHeaders: Boolean,
+    onGroupClick: (LibraryGroupMode, String) -> Unit,
     onSongClick: (LocalSong) -> Unit,
 ) {
     LazyColumn(modifier = Modifier.padding(top = 16.dp)) {
         groups.forEach { group ->
             if (showGroupHeaders) {
                 item(key = "group-${group.title}") {
-                    GroupHeader(title = group.title, count = group.songs.size)
+                    GroupHeader(
+                        title = group.title,
+                        count = group.songs.size,
+                        onClick = { onGroupClick(groupMode, group.title) },
+                    )
                 }
             }
             items(items = group.songs, key = { it.id }) { song ->
@@ -198,18 +207,31 @@ private fun SongList(
 }
 
 @Composable
-private fun GroupHeader(title: String, count: Int) {
-    Text(
+private fun GroupHeader(title: String, count: Int, onClick: () -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(top = 12.dp, bottom = 6.dp),
-        text = "$title · $count 首",
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            modifier = Modifier.weight(1f),
+            text = "$title · $count 首",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            modifier = Modifier.padding(start = 8.dp),
+            text = "进入",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
 }
 
 @Composable
@@ -239,6 +261,79 @@ private fun SongRow(song: LocalSong, onClick: () -> Unit) {
             text = formatDuration(song.durationMillis),
             style = MaterialTheme.typography.bodySmall,
         )
+    }
+}
+
+@Composable
+fun LibraryGroupDetailScreen(
+    groupMode: LibraryGroupMode,
+    groupTitle: String,
+    onBack: () -> Unit,
+    onOpenPlayer: () -> Unit,
+    viewModel: LibraryViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val songs = viewModel.groupSongs(groupMode, groupTitle)
+    val detailTitle = when (groupMode) {
+        LibraryGroupMode.Artist -> "艺术家：$groupTitle"
+        LibraryGroupMode.Album -> "专辑：$groupTitle"
+        LibraryGroupMode.None -> groupTitle
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(onClick = onBack) { Text("返回") }
+            Button(onClick = onOpenPlayer) { Text("播放器") }
+        }
+
+        Text(
+            modifier = Modifier.padding(top = 20.dp),
+            text = detailTitle,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            modifier = Modifier.padding(top = 6.dp),
+            text = "${songs.size} 首歌曲 · 排序：${uiState.sortMode.label}",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(
+                enabled = songs.isNotEmpty(),
+                onClick = { viewModel.playQueue(songs) },
+            ) {
+                Text("播放本组")
+            }
+            OutlinedButton(onClick = onBack) { Text("回到音乐库") }
+        }
+
+        if (songs.isEmpty()) {
+            EmptyLibraryMessage("这个分组下暂时没有歌曲，可能需要重新扫描或切换分组。")
+        } else {
+            LazyColumn(modifier = Modifier.padding(top = 16.dp)) {
+                items(items = songs, key = { it.id }) { song ->
+                    SongRow(song = song, onClick = { viewModel.playFromQueue(song, songs) })
+                    HorizontalDivider()
+                }
+            }
+        }
     }
 }
 

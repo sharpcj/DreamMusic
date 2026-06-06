@@ -14,7 +14,10 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.sharpcj.dreammusic.core.permissions.NotificationPermissionEffect
 import com.sharpcj.dreammusic.feature.discover.DiscoverScreen
+import com.sharpcj.dreammusic.feature.library.LibraryGroupDetailScreen
+import com.sharpcj.dreammusic.feature.library.LibraryGroupMode
 import com.sharpcj.dreammusic.feature.library.LibraryScreen
+import com.sharpcj.dreammusic.feature.library.LibraryViewModel
 import com.sharpcj.dreammusic.feature.player.MiniPlayer
 import com.sharpcj.dreammusic.feature.player.PlayerScreen
 import com.sharpcj.dreammusic.feature.player.PlayerViewModel
@@ -24,6 +27,7 @@ import com.sharpcj.dreammusic.feature.settings.SettingsScreen
 @Composable
 fun DreamMusicApp(
     playerViewModel: PlayerViewModel = hiltViewModel(),
+    libraryViewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val backStack = remember { mutableStateListOf<DreamMusicNavKey>(DreamMusicNavKey.Library) }
     val currentDestination = backStack.lastOrNull() ?: DreamMusicNavKey.Library
@@ -64,10 +68,32 @@ fun DreamMusicApp(
             backStack = backStack,
             modifier = Modifier.padding(innerPadding),
             entryProvider = entryProvider {
-                entry<DreamMusicNavKey.Library> { LibraryScreen(onOpenPlayer = openPlayer) }
+                entry<DreamMusicNavKey.Library> {
+                    LibraryScreen(
+                        onOpenPlayer = openPlayer,
+                        onOpenGroup = { groupMode, groupTitle ->
+                            backStack.add(
+                                DreamMusicNavKey.LibraryGroupDetail(
+                                    groupModeName = groupMode.name,
+                                    groupTitle = groupTitle,
+                                ),
+                            )
+                        },
+                        viewModel = libraryViewModel,
+                    )
+                }
                 entry<DreamMusicNavKey.Discover> { DiscoverScreen() }
                 entry<DreamMusicNavKey.Search> { SearchScreen(onOpenPlayer = openPlayer) }
                 entry<DreamMusicNavKey.Settings> { SettingsScreen() }
+                entry<DreamMusicNavKey.LibraryGroupDetail> { key ->
+                    LibraryGroupDetailScreen(
+                        groupMode = LibraryGroupMode.valueOf(key.groupModeName),
+                        groupTitle = key.groupTitle,
+                        onBack = { backStack.removeLastOrNull() },
+                        onOpenPlayer = openPlayer,
+                        viewModel = libraryViewModel,
+                    )
+                }
                 entry<DreamMusicNavKey.Player> {
                     PlayerScreen(
                         onBack = { backStack.removeLastOrNull() },
