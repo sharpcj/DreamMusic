@@ -66,7 +66,7 @@ fun DreamMusicApp(
             entryProvider = entryProvider {
                 entry<DreamMusicNavKey.Library> { LibraryScreen(onOpenPlayer = openPlayer) }
                 entry<DreamMusicNavKey.Discover> { DiscoverScreen() }
-                entry<DreamMusicNavKey.Search> { SearchScreen() }
+                entry<DreamMusicNavKey.Search> { SearchScreen(onOpenPlayer = openPlayer) }
                 entry<DreamMusicNavKey.Settings> { SettingsScreen() }
                 entry<DreamMusicNavKey.Player> {
                     PlayerScreen(
