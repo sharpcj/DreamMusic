@@ -75,6 +75,33 @@ class PlayerViewModel @Inject constructor(
         updateFrom(player)
     }
 
+    fun playQueueItem(index: Int) {
+        val player = controller ?: return
+        if (index !in 0 until player.mediaItemCount) return
+        player.seekTo(index, 0L)
+        player.play()
+        updateFrom(player)
+    }
+
+    fun cyclePlaybackMode() {
+        val player = controller ?: return
+        when (currentPlaybackMode(player)) {
+            PlaybackMode.Order -> {
+                player.repeatMode = Player.REPEAT_MODE_ONE
+                player.shuffleModeEnabled = false
+            }
+            PlaybackMode.RepeatOne -> {
+                player.repeatMode = Player.REPEAT_MODE_OFF
+                player.shuffleModeEnabled = true
+            }
+            PlaybackMode.Shuffle -> {
+                player.repeatMode = Player.REPEAT_MODE_OFF
+                player.shuffleModeEnabled = false
+            }
+        }
+        updateFrom(player)
+    }
+
     fun refresh() {
         controller?.let(::updateFrom)
     }
@@ -128,6 +155,7 @@ class PlayerViewModel @Inject constructor(
 
     private fun updateFrom(player: Player) {
         val metadata = player.mediaMetadata
+        val currentIndex = player.currentMediaItemIndex.takeIf { it >= 0 } ?: -1
         _uiState.value = PlayerUiState(
             title = metadata.displayTitleOrTitle(),
             artist = metadata.artist?.toString().orEmpty(),
@@ -135,11 +163,32 @@ class PlayerViewModel @Inject constructor(
             isPlaying = player.isPlaying,
             canSkipToPrevious = player.hasPreviousMediaItem(),
             canSkipToNext = player.hasNextMediaItem(),
+            playbackMode = currentPlaybackMode(player),
+            queue = player.queueItems(currentIndex),
+            currentQueueIndex = currentIndex,
             durationMillis = player.duration.takeIf { it > 0 } ?: 0L,
             currentPositionMillis = player.currentPosition.coerceAtLeast(0L),
             isControllerReady = true,
         )
     }
+
+    private fun currentPlaybackMode(player: Player): PlaybackMode = when {
+        player.shuffleModeEnabled -> PlaybackMode.Shuffle
+        player.repeatMode == Player.REPEAT_MODE_ONE -> PlaybackMode.RepeatOne
+        else -> PlaybackMode.Order
+    }
+
+    private fun Player.queueItems(currentIndex: Int): List<PlayerQueueItem> =
+        (0 until mediaItemCount).map { index ->
+            val item = getMediaItemAt(index)
+            val metadata = item.mediaMetadata
+            PlayerQueueItem(
+                mediaId = item.mediaId,
+                title = metadata.displayTitleOrTitle(),
+                artist = metadata.artist?.toString().orEmpty(),
+                isCurrent = index == currentIndex,
+            )
+        }
 
     private fun MediaMetadata.displayTitleOrTitle(): String =
         displayTitle?.toString()
