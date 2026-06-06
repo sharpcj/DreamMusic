@@ -1,0 +1,54 @@
+# Gradle
+.gradle/
+build/
+**/build/
+gradle/gradle-daemon-jvm.properties
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Local machine configuration
+local.properties
+
+# Android generated artifacts
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin / Java generated files
+out/
+bin/
+gen/
+
+# Logs
+*.log
+
+# Signing / secrets
+*.jks
+*.keystore
+*.p12
+*.pem
+
+# Google / Firebase local service configs
+# Commit these only when the project intentionally shares non-secret config.
+google-services.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Legacy / tool-specific generated files
+proguard/
+freeline.py
+freeline/
+freeline_project_description.json
