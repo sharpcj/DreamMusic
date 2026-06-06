@@ -33,6 +33,7 @@ import com.sharpcj.dreammusic.core.model.LocalSong
 @Composable
 fun LibraryScreen(
     onOpenPlayer: () -> Unit,
+    onOpenRecentPlays: () -> Unit,
     onOpenGroup: (LibraryGroupMode, String) -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
@@ -73,6 +74,7 @@ fun LibraryScreen(
                 }
             },
             onOpenPlayer = onOpenPlayer,
+            onOpenRecentPlays = onOpenRecentPlays,
         )
 
         val errorMessage = uiState.errorMessage
@@ -102,6 +104,7 @@ private fun LibraryActions(
     uiState: LibraryUiState,
     onRefresh: () -> Unit,
     onOpenPlayer: () -> Unit,
+    onOpenRecentPlays: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -113,6 +116,7 @@ private fun LibraryActions(
         Button(onClick = onRefresh, enabled = !uiState.isRefreshing) {
             Text(if (uiState.isRefreshing) "扫描中..." else "扫描本地音乐")
         }
+        Button(onClick = onOpenRecentPlays) { Text("最近播放") }
         Button(onClick = onOpenPlayer) { Text("打开播放器") }
     }
     uiState.lastRefreshCount?.let { count ->

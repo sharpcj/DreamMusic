@@ -21,6 +21,7 @@ import com.sharpcj.dreammusic.feature.library.LibraryViewModel
 import com.sharpcj.dreammusic.feature.player.MiniPlayer
 import com.sharpcj.dreammusic.feature.player.PlayerScreen
 import com.sharpcj.dreammusic.feature.player.PlayerViewModel
+import com.sharpcj.dreammusic.feature.recent.RecentPlaysScreen
 import com.sharpcj.dreammusic.feature.search.SearchScreen
 import com.sharpcj.dreammusic.feature.settings.SettingsScreen
 
@@ -35,6 +36,11 @@ fun DreamMusicApp(
     val openPlayer = {
         if (backStack.lastOrNull() !is DreamMusicNavKey.Player) {
             backStack.add(DreamMusicNavKey.Player)
+        }
+    }
+    val openRecentPlays = {
+        if (backStack.lastOrNull() !is DreamMusicNavKey.RecentPlays) {
+            backStack.add(DreamMusicNavKey.RecentPlays)
         }
     }
 
@@ -71,6 +77,7 @@ fun DreamMusicApp(
                 entry<DreamMusicNavKey.Library> {
                     LibraryScreen(
                         onOpenPlayer = openPlayer,
+                        onOpenRecentPlays = openRecentPlays,
                         onOpenGroup = { groupMode, groupTitle ->
                             backStack.add(
                                 DreamMusicNavKey.LibraryGroupDetail(
@@ -85,6 +92,12 @@ fun DreamMusicApp(
                 entry<DreamMusicNavKey.Discover> { DiscoverScreen() }
                 entry<DreamMusicNavKey.Search> { SearchScreen(onOpenPlayer = openPlayer) }
                 entry<DreamMusicNavKey.Settings> { SettingsScreen() }
+                entry<DreamMusicNavKey.RecentPlays> {
+                    RecentPlaysScreen(
+                        onBack = { backStack.removeLastOrNull() },
+                        onOpenPlayer = openPlayer,
+                    )
+                }
                 entry<DreamMusicNavKey.LibraryGroupDetail> { key ->
                     LibraryGroupDetailScreen(
                         groupMode = LibraryGroupMode.valueOf(key.groupModeName),
