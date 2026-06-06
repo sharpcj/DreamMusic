@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -75,10 +76,18 @@ fun LibraryScreen(
 
         val errorMessage = uiState.errorMessage
         when {
-            uiState.songs.isNotEmpty() -> SongList(
-                songs = uiState.songs,
-                onSongClick = viewModel::play,
-            )
+            uiState.songs.isNotEmpty() -> {
+                LibraryViewControls(
+                    uiState = uiState,
+                    onSortModeSelected = viewModel::setSortMode,
+                    onGroupModeSelected = viewModel::setGroupMode,
+                )
+                SongList(
+                    groups = uiState.songGroups,
+                    showGroupHeaders = uiState.groupMode != LibraryGroupMode.None,
+                    onSongClick = viewModel::play,
+                )
+            }
             errorMessage != null -> EmptyLibraryMessage(errorMessage)
             else -> EmptyLibraryMessage("点击“扫描本地音乐”读取设备上的音频文件。")
         }
@@ -113,16 +122,94 @@ private fun LibraryActions(
 }
 
 @Composable
+private fun LibraryViewControls(
+    uiState: LibraryUiState,
+    onSortModeSelected: (LibrarySortMode) -> Unit,
+    onGroupModeSelected: (LibraryGroupMode) -> Unit,
+) {
+    Column(modifier = Modifier.padding(top = 16.dp)) {
+        Text(
+            text = "排序：${uiState.sortMode.label}",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Row(
+            modifier = Modifier.padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            LibrarySortMode.entries.forEach { mode ->
+                ModeButton(
+                    text = mode.label,
+                    selected = uiState.sortMode == mode,
+                    onClick = { onSortModeSelected(mode) },
+                )
+            }
+        }
+
+        Text(
+            modifier = Modifier.padding(top = 12.dp),
+            text = "分组：${uiState.groupMode.label}",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Row(
+            modifier = Modifier.padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            LibraryGroupMode.entries.forEach { mode ->
+                ModeButton(
+                    text = mode.label,
+                    selected = uiState.groupMode == mode,
+                    onClick = { onGroupModeSelected(mode) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModeButton(text: String, selected: Boolean, onClick: () -> Unit) {
+    if (selected) {
+        Button(onClick = onClick) { Text(text) }
+    } else {
+        OutlinedButton(onClick = onClick) { Text(text) }
+    }
+}
+
+@Composable
 private fun SongList(
-    songs: List<LocalSong>,
+    groups: List<LibrarySongGroup>,
+    showGroupHeaders: Boolean,
     onSongClick: (LocalSong) -> Unit,
 ) {
     LazyColumn(modifier = Modifier.padding(top = 16.dp)) {
-        items(items = songs, key = { it.id }) { song ->
-            SongRow(song = song, onClick = { onSongClick(song) })
-            HorizontalDivider()
+        groups.forEach { group ->
+            if (showGroupHeaders) {
+                item(key = "group-${group.title}") {
+                    GroupHeader(title = group.title, count = group.songs.size)
+                }
+            }
+            items(items = group.songs, key = { it.id }) { song ->
+                SongRow(song = song, onClick = { onSongClick(song) })
+                HorizontalDivider()
+            }
         }
     }
+}
+
+@Composable
+private fun GroupHeader(title: String, count: Int) {
+    Text(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, bottom = 6.dp),
+        text = "$title · $count 首",
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 @Composable

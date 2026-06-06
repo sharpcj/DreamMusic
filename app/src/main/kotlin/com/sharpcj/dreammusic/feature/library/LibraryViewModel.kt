@@ -25,13 +25,21 @@ class LibraryViewModel @Inject constructor(
     private val playbackController: PlaybackController,
 ) : ViewModel() {
     private val refreshState = MutableStateFlow(RefreshState())
+    private val sortMode = MutableStateFlow(LibrarySortMode.Title)
+    private val groupMode = MutableStateFlow(LibraryGroupMode.None)
 
     val uiState = combine(
         localMusicRepository.observeLocalSongs(),
         refreshState,
-    ) { songs, refresh ->
+        sortMode,
+        groupMode,
+    ) { songs, refresh, sort, group ->
+        val sortedSongs = songs.sortedWith(sort.comparator())
         LibraryUiState(
-            songs = songs,
+            songs = sortedSongs,
+            songGroups = sortedSongs.groupBy(group),
+            sortMode = sort,
+            groupMode = group,
             isRefreshing = refresh.isRefreshing,
             lastRefreshCount = refresh.lastRefreshCount,
             errorMessage = refresh.errorMessage,
@@ -70,6 +78,14 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
+    fun setSortMode(mode: LibrarySortMode) {
+        sortMode.value = mode
+    }
+
+    fun setGroupMode(mode: LibraryGroupMode) {
+        groupMode.value = mode
+    }
+
     fun play(song: LocalSong) {
         val songs = uiState.value.songs
         val startIndex = songs.indexOfFirst { it.id == song.id }.takeIf { it >= 0 } ?: 0
@@ -81,4 +97,26 @@ class LibraryViewModel @Inject constructor(
         val lastRefreshCount: Int? = null,
         val errorMessage: String? = null,
     )
+
+    private fun LibrarySortMode.comparator(): Comparator<LocalSong> = when (this) {
+        LibrarySortMode.Title -> compareBy(String.CASE_INSENSITIVE_ORDER, LocalSong::title)
+            .thenBy(String.CASE_INSENSITIVE_ORDER, LocalSong::artist)
+        LibrarySortMode.Artist -> compareBy(String.CASE_INSENSITIVE_ORDER, LocalSong::artist)
+            .thenBy(String.CASE_INSENSITIVE_ORDER, LocalSong::title)
+        LibrarySortMode.Album -> compareBy(String.CASE_INSENSITIVE_ORDER, LocalSong::album)
+            .thenBy(String.CASE_INSENSITIVE_ORDER, LocalSong::title)
+        LibrarySortMode.Duration -> compareBy<LocalSong> { it.durationMillis }
+            .thenBy(String.CASE_INSENSITIVE_ORDER, LocalSong::title)
+    }
+
+    private fun List<LocalSong>.groupBy(mode: LibraryGroupMode): List<LibrarySongGroup> = when (mode) {
+        LibraryGroupMode.None -> listOf(LibrarySongGroup(title = "全部歌曲", songs = this))
+        LibraryGroupMode.Artist -> groupBy { it.artist.ifBlank { "未知艺术家" } }.toSongGroups()
+        LibraryGroupMode.Album -> groupBy { it.album.ifBlank { "未知专辑" } }.toSongGroups()
+    }
+
+    private fun Map<String, List<LocalSong>>.toSongGroups(): List<LibrarySongGroup> =
+        entries
+            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.key })
+            .map { (title, songs) -> LibrarySongGroup(title = title, songs = songs) }
 }
