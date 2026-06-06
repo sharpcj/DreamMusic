@@ -17,8 +17,9 @@ class DreamMusicPlaybackService : MediaSessionService() {
     }
 
     override fun onStartCommand(intent: android.content.Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == PlaybackController.ACTION_PLAY_LOCAL_SONG) {
-            playLocalSong(intent)
+        when (intent?.action) {
+            PlaybackController.ACTION_PLAY_LOCAL_SONG -> playLocalSong(intent)
+            PlaybackController.ACTION_PLAY_LOCAL_QUEUE -> playLocalQueue(intent)
         }
         return super.onStartCommand(intent, flags, startId)
     }
@@ -38,7 +39,29 @@ class DreamMusicPlaybackService : MediaSessionService() {
         val uri = intent.getStringExtra(PlaybackController.EXTRA_CONTENT_URI) ?: return
         val title = intent.getStringExtra(PlaybackController.EXTRA_TITLE).orEmpty()
         val artist = intent.getStringExtra(PlaybackController.EXTRA_ARTIST).orEmpty()
-        val mediaItem = MediaItem.Builder()
+        playMediaItems(listOf(buildLocalSongMediaItem(uri = uri, title = title, artist = artist)), startIndex = 0)
+    }
+
+    private fun playLocalQueue(intent: android.content.Intent) {
+        val uris = intent.getStringArrayListExtra(PlaybackController.EXTRA_CONTENT_URIS).orEmpty()
+        val titles = intent.getStringArrayListExtra(PlaybackController.EXTRA_TITLES).orEmpty()
+        val artists = intent.getStringArrayListExtra(PlaybackController.EXTRA_ARTISTS).orEmpty()
+        val mediaItems = uris.mapIndexed { index, uri ->
+            buildLocalSongMediaItem(
+                uri = uri,
+                title = titles.getOrNull(index).orEmpty(),
+                artist = artists.getOrNull(index).orEmpty(),
+            )
+        }
+        if (mediaItems.isEmpty()) return
+
+        val startIndex = intent.getIntExtra(PlaybackController.EXTRA_START_INDEX, 0)
+            .coerceIn(mediaItems.indices)
+        playMediaItems(mediaItems = mediaItems, startIndex = startIndex)
+    }
+
+    private fun buildLocalSongMediaItem(uri: String, title: String, artist: String): MediaItem =
+        MediaItem.Builder()
             .setMediaId(uri)
             .setUri(uri)
             .setMediaMetadata(
@@ -49,8 +72,9 @@ class DreamMusicPlaybackService : MediaSessionService() {
             )
             .build()
 
+    private fun playMediaItems(mediaItems: List<MediaItem>, startIndex: Int) {
         mediaSession?.player?.run {
-            setMediaItem(mediaItem)
+            setMediaItems(mediaItems, startIndex, 0L)
             prepare()
             play()
         }

@@ -57,6 +57,18 @@ class PlayerViewModel @Inject constructor(
         updateFrom(player)
     }
 
+    fun skipToPrevious() {
+        val player = controller ?: return
+        player.seekToPreviousMediaItem()
+        updateFrom(player)
+    }
+
+    fun skipToNext() {
+        val player = controller ?: return
+        player.seekToNextMediaItem()
+        updateFrom(player)
+    }
+
     fun seekTo(positionMillis: Long) {
         val player = controller ?: return
         player.seekTo(positionMillis.coerceAtLeast(0L))
@@ -121,6 +133,8 @@ class PlayerViewModel @Inject constructor(
             artist = metadata.artist?.toString().orEmpty(),
             hasCurrentMedia = player.currentMediaItem != null || player.mediaItemCount > 0,
             isPlaying = player.isPlaying,
+            canSkipToPrevious = player.hasPreviousMediaItem(),
+            canSkipToNext = player.hasNextMediaItem(),
             durationMillis = player.duration.takeIf { it > 0 } ?: 0L,
             currentPositionMillis = player.currentPosition.coerceAtLeast(0L),
             isControllerReady = true,

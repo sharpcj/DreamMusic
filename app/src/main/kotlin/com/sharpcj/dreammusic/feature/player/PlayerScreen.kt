@@ -71,11 +71,23 @@ fun PlayerScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            OutlinedButton(
+                onClick = viewModel::skipToPrevious,
+                enabled = uiState.isControllerReady && uiState.canSkipToPrevious,
+            ) {
+                Text("上一首")
+            }
             Button(
                 onClick = viewModel::playOrPause,
                 enabled = uiState.isControllerReady,
             ) {
                 Text(if (uiState.isPlaying) "暂停" else "播放")
+            }
+            OutlinedButton(
+                onClick = viewModel::skipToNext,
+                enabled = uiState.isControllerReady && uiState.canSkipToNext,
+            ) {
+                Text("下一首")
             }
             OutlinedButton(
                 onClick = viewModel::stop,

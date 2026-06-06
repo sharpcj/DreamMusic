@@ -21,7 +21,9 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MiniPlayer(
     uiState: PlayerUiState,
+    onSkipToPrevious: () -> Unit,
     onTogglePlayPause: () -> Unit,
+    onSkipToNext: () -> Unit,
     onOpenPlayer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -65,10 +67,22 @@ fun MiniPlayer(
                     )
                 }
                 Button(
+                    onClick = onSkipToPrevious,
+                    enabled = uiState.isControllerReady && uiState.canSkipToPrevious,
+                ) {
+                    Text("上")
+                }
+                Button(
                     onClick = onTogglePlayPause,
                     enabled = uiState.isControllerReady,
                 ) {
                     Text(if (uiState.isPlaying) "暂停" else "播放")
+                }
+                Button(
+                    onClick = onSkipToNext,
+                    enabled = uiState.isControllerReady && uiState.canSkipToNext,
+                ) {
+                    Text("下")
                 }
             }
         }

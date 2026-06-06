@@ -71,7 +71,9 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun play(song: LocalSong) {
-        playbackController.play(song)
+        val songs = uiState.value.songs
+        val startIndex = songs.indexOfFirst { it.id == song.id }.takeIf { it >= 0 } ?: 0
+        playbackController.playQueue(songs = songs.ifEmpty { listOf(song) }, startIndex = startIndex)
     }
 
     private data class RefreshState(

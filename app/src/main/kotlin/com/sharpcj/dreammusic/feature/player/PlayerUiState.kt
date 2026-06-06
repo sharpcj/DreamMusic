@@ -10,6 +10,8 @@ data class PlayerUiState(
     val artist: String = "",
     val hasCurrentMedia: Boolean = false,
     val isPlaying: Boolean = false,
+    val canSkipToPrevious: Boolean = false,
+    val canSkipToNext: Boolean = false,
     val durationMillis: Long = 0L,
     val currentPositionMillis: Long = 0L,
     val isControllerReady: Boolean = false,

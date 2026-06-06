@@ -39,7 +39,9 @@ fun DreamMusicApp(
                 if (currentDestination !is DreamMusicNavKey.Player) {
                     MiniPlayer(
                         uiState = playerUiState,
+                        onSkipToPrevious = playerViewModel::skipToPrevious,
                         onTogglePlayPause = playerViewModel::playOrPause,
+                        onSkipToNext = playerViewModel::skipToNext,
                         onOpenPlayer = openPlayer,
                     )
                 }
