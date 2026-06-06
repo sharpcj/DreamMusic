@@ -8,6 +8,7 @@ package com.sharpcj.dreammusic.feature.player
 data class PlayerUiState(
     val title: String = "暂无播放内容",
     val artist: String = "",
+    val hasCurrentMedia: Boolean = false,
     val isPlaying: Boolean = false,
     val durationMillis: Long = 0L,
     val currentPositionMillis: Long = 0L,

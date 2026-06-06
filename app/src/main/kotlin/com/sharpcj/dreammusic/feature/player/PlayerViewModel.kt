@@ -57,6 +57,12 @@ class PlayerViewModel @Inject constructor(
         updateFrom(player)
     }
 
+    fun seekTo(positionMillis: Long) {
+        val player = controller ?: return
+        player.seekTo(positionMillis.coerceAtLeast(0L))
+        updateFrom(player)
+    }
+
     fun refresh() {
         controller?.let(::updateFrom)
     }
@@ -113,6 +119,7 @@ class PlayerViewModel @Inject constructor(
         _uiState.value = PlayerUiState(
             title = metadata.displayTitleOrTitle(),
             artist = metadata.artist?.toString().orEmpty(),
+            hasCurrentMedia = player.currentMediaItem != null || player.mediaItemCount > 0,
             isPlaying = player.isPlaying,
             durationMillis = player.duration.takeIf { it > 0 } ?: 0L,
             currentPositionMillis = player.currentPosition.coerceAtLeast(0L),
