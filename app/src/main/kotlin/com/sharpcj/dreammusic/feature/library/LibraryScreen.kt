@@ -75,7 +75,10 @@ fun LibraryScreen(
 
         val errorMessage = uiState.errorMessage
         when {
-            uiState.songs.isNotEmpty() -> SongList(songs = uiState.songs)
+            uiState.songs.isNotEmpty() -> SongList(
+                songs = uiState.songs,
+                onSongClick = viewModel::play,
+            )
             errorMessage != null -> EmptyLibraryMessage(errorMessage)
             else -> EmptyLibraryMessage("点击“扫描本地音乐”读取设备上的音频文件。")
         }
@@ -110,21 +113,24 @@ private fun LibraryActions(
 }
 
 @Composable
-private fun SongList(songs: List<LocalSong>) {
+private fun SongList(
+    songs: List<LocalSong>,
+    onSongClick: (LocalSong) -> Unit,
+) {
     LazyColumn(modifier = Modifier.padding(top = 16.dp)) {
         items(items = songs, key = { it.id }) { song ->
-            SongRow(song = song)
+            SongRow(song = song, onClick = { onSongClick(song) })
             HorizontalDivider()
         }
     }
 }
 
 @Composable
-private fun SongRow(song: LocalSong) {
+private fun SongRow(song: LocalSong, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { }
+            .clickable(onClick = onClick)
             .padding(vertical = 12.dp),
     ) {
         Text(

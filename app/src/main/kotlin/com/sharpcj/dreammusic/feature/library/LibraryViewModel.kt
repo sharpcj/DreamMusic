@@ -8,6 +8,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sharpcj.dreammusic.core.data.LocalMusicRepository
+import com.sharpcj.dreammusic.core.media.PlaybackController
+import com.sharpcj.dreammusic.core.model.LocalSong
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +22,7 @@ import kotlinx.coroutines.launch
 class LibraryViewModel @Inject constructor(
     private val application: Application,
     private val localMusicRepository: LocalMusicRepository,
+    private val playbackController: PlaybackController,
 ) : ViewModel() {
     private val refreshState = MutableStateFlow(RefreshState())
 
@@ -65,6 +68,10 @@ class LibraryViewModel @Inject constructor(
                     refreshState.value = RefreshState(errorMessage = throwable.message ?: "扫描本地音乐失败")
                 }
         }
+    }
+
+    fun play(song: LocalSong) {
+        playbackController.play(song)
     }
 
     private data class RefreshState(
