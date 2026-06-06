@@ -34,6 +34,7 @@ import com.sharpcj.dreammusic.core.model.LocalSong
 fun LibraryScreen(
     onOpenPlayer: () -> Unit,
     onOpenRecentPlays: () -> Unit,
+    onOpenFavoriteSongs: () -> Unit,
     onOpenGroup: (LibraryGroupMode, String) -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
@@ -75,6 +76,7 @@ fun LibraryScreen(
             },
             onOpenPlayer = onOpenPlayer,
             onOpenRecentPlays = onOpenRecentPlays,
+            onOpenFavoriteSongs = onOpenFavoriteSongs,
         )
 
         val errorMessage = uiState.errorMessage
@@ -89,8 +91,10 @@ fun LibraryScreen(
                     groups = uiState.songGroups,
                     groupMode = uiState.groupMode,
                     showGroupHeaders = uiState.groupMode != LibraryGroupMode.None,
+                    favoriteSongIds = uiState.favoriteSongIds,
                     onGroupClick = onOpenGroup,
                     onSongClick = viewModel::play,
+                    onToggleFavorite = viewModel::toggleFavorite,
                 )
             }
             errorMessage != null -> EmptyLibraryMessage(errorMessage)
@@ -105,6 +109,7 @@ private fun LibraryActions(
     onRefresh: () -> Unit,
     onOpenPlayer: () -> Unit,
     onOpenRecentPlays: () -> Unit,
+    onOpenFavoriteSongs: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -116,6 +121,7 @@ private fun LibraryActions(
         Button(onClick = onRefresh, enabled = !uiState.isRefreshing) {
             Text(if (uiState.isRefreshing) "扫描中..." else "扫描本地音乐")
         }
+        Button(onClick = onOpenFavoriteSongs) { Text("我喜欢") }
         Button(onClick = onOpenRecentPlays) { Text("最近播放") }
         Button(onClick = onOpenPlayer) { Text("打开播放器") }
     }
@@ -188,8 +194,10 @@ private fun SongList(
     groups: List<LibrarySongGroup>,
     groupMode: LibraryGroupMode,
     showGroupHeaders: Boolean,
+    favoriteSongIds: Set<Long>,
     onGroupClick: (LibraryGroupMode, String) -> Unit,
     onSongClick: (LocalSong) -> Unit,
+    onToggleFavorite: (LocalSong) -> Unit,
 ) {
     LazyColumn(modifier = Modifier.padding(top = 16.dp)) {
         groups.forEach { group ->
@@ -203,7 +211,12 @@ private fun SongList(
                 }
             }
             items(items = group.songs, key = { it.id }) { song ->
-                SongRow(song = song, onClick = { onSongClick(song) })
+                SongRow(
+                    song = song,
+                    isFavorite = song.id in favoriteSongIds,
+                    onClick = { onSongClick(song) },
+                    onToggleFavorite = { onToggleFavorite(song) },
+                )
                 HorizontalDivider()
             }
         }
@@ -239,32 +252,47 @@ private fun GroupHeader(title: String, count: Int, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SongRow(song: LocalSong, onClick: () -> Unit) {
-    Column(
+private fun SongRow(
+    song: LocalSong,
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
+) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = song.title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            modifier = Modifier.padding(top = 4.dp),
-            text = "${song.artist} · ${song.album}",
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            modifier = Modifier.padding(top = 2.dp),
-            text = formatDuration(song.durationMillis),
-            style = MaterialTheme.typography.bodySmall,
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                modifier = Modifier.padding(top = 4.dp),
+                text = "${song.artist} · ${song.album}",
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                modifier = Modifier.padding(top = 2.dp),
+                text = formatDuration(song.durationMillis),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        OutlinedButton(
+            modifier = Modifier.padding(start = 12.dp),
+            onClick = onToggleFavorite,
+        ) {
+            Text(if (isFavorite) "已喜欢" else "喜欢")
+        }
     }
 }
 
@@ -333,7 +361,12 @@ fun LibraryGroupDetailScreen(
         } else {
             LazyColumn(modifier = Modifier.padding(top = 16.dp)) {
                 items(items = songs, key = { it.id }) { song ->
-                    SongRow(song = song, onClick = { viewModel.playFromQueue(song, songs) })
+                    SongRow(
+                        song = song,
+                        isFavorite = song.id in uiState.favoriteSongIds,
+                        onClick = { viewModel.playFromQueue(song, songs) },
+                        onToggleFavorite = { viewModel.toggleFavorite(song) },
+                    )
                     HorizontalDivider()
                 }
             }

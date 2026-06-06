@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -54,6 +55,7 @@ fun SearchScreen(
         SearchContent(
             uiState = uiState,
             onSongClick = viewModel::play,
+            onToggleFavorite = viewModel::toggleFavorite,
             onOpenPlayer = onOpenPlayer,
         )
     }
@@ -90,6 +92,7 @@ private fun SearchInput(
 private fun SearchContent(
     uiState: SearchUiState,
     onSongClick: (LocalSong) -> Unit,
+    onToggleFavorite: (LocalSong) -> Unit,
     onOpenPlayer: () -> Unit,
 ) {
     when {
@@ -104,7 +107,9 @@ private fun SearchContent(
         uiState.hasResults -> SearchResults(
             query = uiState.query.trim(),
             songs = uiState.results,
+            favoriteSongIds = uiState.favoriteSongIds,
             onSongClick = onSongClick,
+            onToggleFavorite = onToggleFavorite,
             onOpenPlayer = onOpenPlayer,
         )
         else -> SearchEmptyMessage(
@@ -118,7 +123,9 @@ private fun SearchContent(
 private fun SearchResults(
     query: String,
     songs: List<LocalSong>,
+    favoriteSongIds: Set<Long>,
     onSongClick: (LocalSong) -> Unit,
+    onToggleFavorite: (LocalSong) -> Unit,
     onOpenPlayer: () -> Unit,
 ) {
     Column(modifier = Modifier.padding(top = 16.dp)) {
@@ -137,7 +144,12 @@ private fun SearchResults(
 
         LazyColumn(modifier = Modifier.padding(top = 8.dp)) {
             items(items = songs, key = { it.id }) { song ->
-                SearchSongRow(song = song, onClick = { onSongClick(song) })
+                SearchSongRow(
+                    song = song,
+                    isFavorite = song.id in favoriteSongIds,
+                    onClick = { onSongClick(song) },
+                    onToggleFavorite = { onToggleFavorite(song) },
+                )
                 HorizontalDivider()
             }
         }
@@ -145,32 +157,44 @@ private fun SearchResults(
 }
 
 @Composable
-private fun SearchSongRow(song: LocalSong, onClick: () -> Unit) {
-    Column(
+private fun SearchSongRow(
+    song: LocalSong,
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
+) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = song.title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            modifier = Modifier.padding(top = 4.dp),
-            text = "${song.artist} · ${song.album}",
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            modifier = Modifier.padding(top = 2.dp),
-            text = "点击后按当前搜索结果队列播放 · ${formatDuration(song.durationMillis)}",
-            style = MaterialTheme.typography.bodySmall,
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                modifier = Modifier.padding(top = 4.dp),
+                text = "${song.artist} · ${song.album}",
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                modifier = Modifier.padding(top = 2.dp),
+                text = "点击后按当前搜索结果队列播放 · ${formatDuration(song.durationMillis)}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        OutlinedButton(modifier = Modifier.padding(start = 12.dp), onClick = onToggleFavorite) {
+            Text(if (isFavorite) "已喜欢" else "喜欢")
+        }
     }
 }
 

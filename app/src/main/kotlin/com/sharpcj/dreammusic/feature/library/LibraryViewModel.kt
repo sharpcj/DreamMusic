@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sharpcj.dreammusic.core.data.FavoriteSongsRepository
 import com.sharpcj.dreammusic.core.data.LocalMusicRepository
 import com.sharpcj.dreammusic.core.media.PlaybackController
 import com.sharpcj.dreammusic.core.model.LocalSong
@@ -22,6 +23,7 @@ import kotlinx.coroutines.launch
 class LibraryViewModel @Inject constructor(
     private val application: Application,
     private val localMusicRepository: LocalMusicRepository,
+    private val favoriteSongsRepository: FavoriteSongsRepository,
     private val playbackController: PlaybackController,
 ) : ViewModel() {
     private val refreshState = MutableStateFlow(RefreshState())
@@ -30,16 +32,18 @@ class LibraryViewModel @Inject constructor(
 
     val uiState = combine(
         localMusicRepository.observeLocalSongs(),
+        favoriteSongsRepository.observeFavoriteSongIds(),
         refreshState,
         sortMode,
         groupMode,
-    ) { songs, refresh, sort, group ->
+    ) { songs, favoriteSongIds, refresh, sort, group ->
         val sortedSongs = songs.sortedWith(sort.comparator())
         LibraryUiState(
             songs = sortedSongs,
             songGroups = sortedSongs.groupBy(group),
             sortMode = sort,
             groupMode = group,
+            favoriteSongIds = favoriteSongIds,
             isRefreshing = refresh.isRefreshing,
             lastRefreshCount = refresh.lastRefreshCount,
             errorMessage = refresh.errorMessage,
@@ -100,6 +104,13 @@ class LibraryViewModel @Inject constructor(
         val queue = songs.ifEmpty { listOf(song) }
         val startIndex = queue.indexOfFirst { it.id == song.id }.takeIf { it >= 0 } ?: 0
         playbackController.playQueue(songs = queue, startIndex = startIndex)
+    }
+
+    fun toggleFavorite(song: LocalSong) {
+        val isFavorite = song.id in uiState.value.favoriteSongIds
+        viewModelScope.launch {
+            favoriteSongsRepository.toggleFavorite(song, isFavorite)
+        }
     }
 
     fun groupSongs(mode: LibraryGroupMode, title: String): List<LocalSong> = when (mode) {

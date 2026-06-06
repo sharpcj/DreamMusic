@@ -7,11 +7,13 @@ import androidx.room.RoomDatabase
     entities = [
         LocalSongEntity::class,
         RecentPlayedSongEntity::class,
+        FavoriteSongEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class DreamMusicDatabase : RoomDatabase() {
     abstract fun localSongDao(): LocalSongDao
     abstract fun recentPlayedSongDao(): RecentPlayedSongDao
+    abstract fun favoriteSongDao(): FavoriteSongDao
 }

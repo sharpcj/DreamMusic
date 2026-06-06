@@ -1,34 +1,28 @@
-package com.sharpcj.dreammusic.feature.recent
+package com.sharpcj.dreammusic.feature.favorite
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sharpcj.dreammusic.core.data.FavoriteSongsRepository
-import com.sharpcj.dreammusic.core.data.PlaybackHistoryRepository
 import com.sharpcj.dreammusic.core.media.PlaybackController
 import com.sharpcj.dreammusic.core.model.LocalSong
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class RecentPlaysViewModel @Inject constructor(
-    private val playbackHistoryRepository: PlaybackHistoryRepository,
+class FavoriteSongsViewModel @Inject constructor(
     private val favoriteSongsRepository: FavoriteSongsRepository,
     private val playbackController: PlaybackController,
 ) : ViewModel() {
-    val uiState = combine(
-        playbackHistoryRepository.observeRecentPlayedSongs(),
-        favoriteSongsRepository.observeFavoriteSongIds(),
-    ) { recentSongs, favoriteSongIds ->
-        RecentPlaysUiState(items = recentSongs, favoriteSongIds = favoriteSongIds)
-    }
+    val uiState = favoriteSongsRepository.observeFavoriteSongs()
+        .map { FavoriteSongsUiState(items = it) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = RecentPlaysUiState(),
+            initialValue = FavoriteSongsUiState(),
         )
 
     fun play(song: LocalSong) {
@@ -38,20 +32,18 @@ class RecentPlaysViewModel @Inject constructor(
     }
 
     fun playAll() {
-        val queue = uiState.value.items.map { it.song }
-        playbackController.playQueue(songs = queue, startIndex = 0)
+        playbackController.playQueue(songs = uiState.value.items.map { it.song }, startIndex = 0)
     }
 
-    fun clearHistory() {
+    fun removeFavorite(song: LocalSong) {
         viewModelScope.launch {
-            playbackHistoryRepository.clear()
+            favoriteSongsRepository.removeFavorite(song.id)
         }
     }
 
-    fun toggleFavorite(song: LocalSong) {
-        val isFavorite = song.id in uiState.value.favoriteSongIds
+    fun clearFavorites() {
         viewModelScope.launch {
-            favoriteSongsRepository.toggleFavorite(song, isFavorite)
+            favoriteSongsRepository.clear()
         }
     }
 }

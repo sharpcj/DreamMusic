@@ -7,6 +7,7 @@ data class LibraryUiState(
     val songGroups: List<LibrarySongGroup> = emptyList(),
     val sortMode: LibrarySortMode = LibrarySortMode.Title,
     val groupMode: LibraryGroupMode = LibraryGroupMode.None,
+    val favoriteSongIds: Set<Long> = emptySet(),
     val isRefreshing: Boolean = false,
     val lastRefreshCount: Int? = null,
     val errorMessage: String? = null,

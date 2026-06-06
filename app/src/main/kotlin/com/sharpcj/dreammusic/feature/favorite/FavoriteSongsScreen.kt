@@ -1,4 +1,4 @@
-package com.sharpcj.dreammusic.feature.recent
+package com.sharpcj.dreammusic.feature.favorite
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,15 +23,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sharpcj.dreammusic.core.model.RecentPlayedSong
+import com.sharpcj.dreammusic.core.model.FavoriteSong
 import java.text.DateFormat
 import java.util.Date
 
 @Composable
-fun RecentPlaysScreen(
+fun FavoriteSongsScreen(
     onBack: () -> Unit,
     onOpenPlayer: () -> Unit,
-    viewModel: RecentPlaysViewModel = hiltViewModel(),
+    viewModel: FavoriteSongsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -51,13 +51,13 @@ fun RecentPlaysScreen(
 
         Text(
             modifier = Modifier.padding(top = 20.dp),
-            text = "最近播放",
+            text = "我喜欢的音乐",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
         Text(
             modifier = Modifier.padding(top = 6.dp),
-            text = "按最近一次播放时间倒序展示。点击歌曲会按最近播放列表作为队列播放。",
+            text = "按收藏时间倒序展示。点击歌曲会按收藏列表作为队列播放。",
             style = MaterialTheme.typography.bodyMedium,
         )
 
@@ -68,30 +68,23 @@ fun RecentPlaysScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Button(
-                enabled = uiState.items.isNotEmpty(),
-                onClick = viewModel::playAll,
-            ) {
-                Text("播放最近")
+            Button(enabled = uiState.items.isNotEmpty(), onClick = viewModel::playAll) {
+                Text("播放喜欢")
             }
-            OutlinedButton(
-                enabled = uiState.items.isNotEmpty(),
-                onClick = viewModel::clearHistory,
-            ) {
-                Text("清空记录")
+            OutlinedButton(enabled = uiState.items.isNotEmpty(), onClick = viewModel::clearFavorites) {
+                Text("清空喜欢")
             }
         }
 
         if (uiState.items.isEmpty()) {
-            EmptyRecentPlaysMessage()
+            EmptyFavoriteSongsMessage()
         } else {
             LazyColumn(modifier = Modifier.padding(top = 16.dp)) {
                 items(items = uiState.items, key = { it.song.id }) { item ->
-                    RecentPlayedSongRow(
+                    FavoriteSongRow(
                         item = item,
-                        isFavorite = item.song.id in uiState.favoriteSongIds,
                         onClick = { viewModel.play(item.song) },
-                        onToggleFavorite = { viewModel.toggleFavorite(item.song) },
+                        onRemove = { viewModel.removeFavorite(item.song) },
                     )
                     HorizontalDivider()
                 }
@@ -101,12 +94,7 @@ fun RecentPlaysScreen(
 }
 
 @Composable
-private fun RecentPlayedSongRow(
-    item: RecentPlayedSong,
-    isFavorite: Boolean,
-    onClick: () -> Unit,
-    onToggleFavorite: () -> Unit,
-) {
+private fun FavoriteSongRow(item: FavoriteSong, onClick: () -> Unit, onRemove: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -132,18 +120,18 @@ private fun RecentPlayedSongRow(
             )
             Text(
                 modifier = Modifier.padding(top = 2.dp),
-                text = "${formatDuration(item.song.durationMillis)} · ${formatPlayedAt(item.playedAtMillis)}",
+                text = "${formatDuration(item.song.durationMillis)} · 收藏于 ${formatTime(item.favoritedAtMillis)}",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        OutlinedButton(modifier = Modifier.padding(start = 12.dp), onClick = onToggleFavorite) {
-            Text(if (isFavorite) "已喜欢" else "喜欢")
+        OutlinedButton(modifier = Modifier.padding(start = 12.dp), onClick = onRemove) {
+            Text("移除")
         }
     }
 }
 
 @Composable
-private fun EmptyRecentPlaysMessage() {
+private fun EmptyFavoriteSongsMessage() {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -151,10 +139,10 @@ private fun EmptyRecentPlaysMessage() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "还没有最近播放记录", style = MaterialTheme.typography.bodyLarge)
+        Text(text = "还没有喜欢的歌曲", style = MaterialTheme.typography.bodyLarge)
         Text(
             modifier = Modifier.padding(top = 8.dp),
-            text = "从音乐库、搜索结果、艺术家或专辑详情播放歌曲后，这里会自动出现记录。",
+            text = "可以在音乐库、搜索结果、最近播放里点击“喜欢”加入收藏。",
             style = MaterialTheme.typography.bodySmall,
         )
     }
@@ -167,5 +155,5 @@ private fun formatDuration(durationMillis: Long): String {
     return "%d:%02d".format(minutes, seconds)
 }
 
-private fun formatPlayedAt(playedAtMillis: Long): String =
-    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(playedAtMillis))
+private fun formatTime(timeMillis: Long): String =
+    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(timeMillis))

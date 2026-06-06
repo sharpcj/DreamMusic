@@ -1,6 +1,8 @@
 package com.sharpcj.dreammusic.feature.search
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.sharpcj.dreammusic.core.data.FavoriteSongsRepository
 import com.sharpcj.dreammusic.core.data.LocalMusicRepository
 import com.sharpcj.dreammusic.core.media.PlaybackController
 import com.sharpcj.dreammusic.core.model.LocalSong
@@ -11,11 +13,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     localMusicRepository: LocalMusicRepository,
+    private val favoriteSongsRepository: FavoriteSongsRepository,
     private val playbackController: PlaybackController,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
@@ -23,7 +26,8 @@ class SearchViewModel @Inject constructor(
     val uiState: StateFlow<SearchUiState> = combine(
         query,
         localMusicRepository.observeLocalSongs(),
-    ) { rawQuery, songs ->
+        favoriteSongsRepository.observeFavoriteSongIds(),
+    ) { rawQuery, songs, favoriteSongIds ->
         val normalizedQuery = rawQuery.trim()
         val results = if (normalizedQuery.isBlank()) {
             emptyList()
@@ -34,6 +38,7 @@ class SearchViewModel @Inject constructor(
             query = rawQuery,
             allSongs = songs,
             results = results,
+            favoriteSongIds = favoriteSongIds,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -53,6 +58,13 @@ class SearchViewModel @Inject constructor(
         val songs = uiState.value.results.ifEmpty { listOf(song) }
         val startIndex = songs.indexOfFirst { it.id == song.id }.takeIf { it >= 0 } ?: 0
         playbackController.playQueue(songs = songs, startIndex = startIndex)
+    }
+
+    fun toggleFavorite(song: LocalSong) {
+        val isFavorite = song.id in uiState.value.favoriteSongIds
+        viewModelScope.launch {
+            favoriteSongsRepository.toggleFavorite(song, isFavorite)
+        }
     }
 
     private fun LocalSong.matches(query: String): Boolean =

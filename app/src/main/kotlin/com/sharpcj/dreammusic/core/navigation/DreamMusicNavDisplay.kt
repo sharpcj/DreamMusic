@@ -14,6 +14,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.sharpcj.dreammusic.core.permissions.NotificationPermissionEffect
 import com.sharpcj.dreammusic.feature.discover.DiscoverScreen
+import com.sharpcj.dreammusic.feature.favorite.FavoriteSongsScreen
 import com.sharpcj.dreammusic.feature.library.LibraryGroupDetailScreen
 import com.sharpcj.dreammusic.feature.library.LibraryGroupMode
 import com.sharpcj.dreammusic.feature.library.LibraryScreen
@@ -41,6 +42,11 @@ fun DreamMusicApp(
     val openRecentPlays = {
         if (backStack.lastOrNull() !is DreamMusicNavKey.RecentPlays) {
             backStack.add(DreamMusicNavKey.RecentPlays)
+        }
+    }
+    val openFavoriteSongs = {
+        if (backStack.lastOrNull() !is DreamMusicNavKey.FavoriteSongs) {
+            backStack.add(DreamMusicNavKey.FavoriteSongs)
         }
     }
 
@@ -78,6 +84,7 @@ fun DreamMusicApp(
                     LibraryScreen(
                         onOpenPlayer = openPlayer,
                         onOpenRecentPlays = openRecentPlays,
+                        onOpenFavoriteSongs = openFavoriteSongs,
                         onOpenGroup = { groupMode, groupTitle ->
                             backStack.add(
                                 DreamMusicNavKey.LibraryGroupDetail(
@@ -94,6 +101,12 @@ fun DreamMusicApp(
                 entry<DreamMusicNavKey.Settings> { SettingsScreen() }
                 entry<DreamMusicNavKey.RecentPlays> {
                     RecentPlaysScreen(
+                        onBack = { backStack.removeLastOrNull() },
+                        onOpenPlayer = openPlayer,
+                    )
+                }
+                entry<DreamMusicNavKey.FavoriteSongs> {
+                    FavoriteSongsScreen(
                         onBack = { backStack.removeLastOrNull() },
                         onOpenPlayer = openPlayer,
                     )

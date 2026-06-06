@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sharpcj.dreammusic.core.database.DreamMusicDatabase
+import com.sharpcj.dreammusic.core.database.FavoriteSongDao
 import com.sharpcj.dreammusic.core.database.LocalSongDao
 import com.sharpcj.dreammusic.core.database.RecentPlayedSongDao
 import dagger.Module
@@ -25,7 +26,7 @@ object DatabaseModule {
         context,
         DreamMusicDatabase::class.java,
         "dream_music.db",
-    ).addMigrations(MIGRATION_1_2).build()
+    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
 
     @Provides
     fun provideLocalSongDao(database: DreamMusicDatabase): LocalSongDao = database.localSongDao()
@@ -33,6 +34,9 @@ object DatabaseModule {
     @Provides
     fun provideRecentPlayedSongDao(database: DreamMusicDatabase): RecentPlayedSongDao =
         database.recentPlayedSongDao()
+
+    @Provides
+    fun provideFavoriteSongDao(database: DreamMusicDatabase): FavoriteSongDao = database.favoriteSongDao()
 
     private val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(db: SupportSQLiteDatabase) {
@@ -47,6 +51,26 @@ object DatabaseModule {
                     `durationMillis` INTEGER NOT NULL,
                     `sizeBytes` INTEGER NOT NULL,
                     `playedAtMillis` INTEGER NOT NULL,
+                    PRIMARY KEY(`songId`)
+                )
+                """.trimIndent(),
+            )
+        }
+    }
+
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `favorite_songs` (
+                    `songId` INTEGER NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `album` TEXT NOT NULL,
+                    `artist` TEXT NOT NULL,
+                    `contentUri` TEXT NOT NULL,
+                    `durationMillis` INTEGER NOT NULL,
+                    `sizeBytes` INTEGER NOT NULL,
+                    `favoritedAtMillis` INTEGER NOT NULL,
                     PRIMARY KEY(`songId`)
                 )
                 """.trimIndent(),
