@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -150,7 +151,8 @@ private fun MoreHeader() {
                     colors = listOf(MoreGreen, Color(0xFF46D394)),
                 ),
             )
-            .padding(start = 18.dp, end = 18.dp, top = 18.dp, bottom = 20.dp),
+            .statusBarsPadding()
+            .padding(start = 18.dp, end = 18.dp, top = 14.dp, bottom = 20.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(

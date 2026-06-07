@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -197,7 +198,8 @@ private fun MyMusicHero(
                     colors = listOf(Color(0xFF28B874), DreamGreen, Color(0xFF4AD99A)),
                 ),
             )
-            .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 24.dp),
+            .statusBarsPadding()
+            .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 24.dp),
     ) {
         Column {
             Row(
@@ -743,8 +745,9 @@ private fun LegacyLocalMusicTopBar(onBack: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .background(DreamGreen),
+            .background(DreamGreen)
+            .statusBarsPadding()
+            .height(56.dp),
     ) {
         Image(
             modifier = Modifier

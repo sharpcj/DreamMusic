@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -89,8 +90,9 @@ private fun FavoriteTopBar(onBack: () -> Unit, onOpenPlayer: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .background(FavoriteGreen),
+            .background(FavoriteGreen)
+            .statusBarsPadding()
+            .height(56.dp),
     ) {
         Image(
             modifier = Modifier

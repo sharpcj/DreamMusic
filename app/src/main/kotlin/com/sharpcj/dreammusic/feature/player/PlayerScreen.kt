@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -97,7 +99,8 @@ private fun PlayerTopBar(uiState: PlayerUiState, onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 20.dp, start = 10.dp, end = 40.dp),
+            .statusBarsPadding()
+            .padding(top = 12.dp, start = 10.dp, end = 40.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
@@ -261,6 +264,7 @@ private fun QueuePanel(uiState: PlayerUiState, onQueueItemClick: (Int) -> Unit) 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .navigationBarsPadding()
             .height(150.dp),
         color = Color.Black.copy(alpha = 0.22f),
         shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
