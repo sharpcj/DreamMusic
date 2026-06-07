@@ -8,6 +8,7 @@ sealed interface DreamMusicNavKey : NavKey {
     data object Search : DreamMusicNavKey
     data object Settings : DreamMusicNavKey
     data object Player : DreamMusicNavKey
+    data object LocalMusic : DreamMusicNavKey
     data object RecentPlays : DreamMusicNavKey
     data object FavoriteSongs : DreamMusicNavKey
 

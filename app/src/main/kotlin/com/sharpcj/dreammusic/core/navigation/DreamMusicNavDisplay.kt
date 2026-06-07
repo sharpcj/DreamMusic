@@ -19,6 +19,7 @@ import com.sharpcj.dreammusic.feature.library.LibraryGroupDetailScreen
 import com.sharpcj.dreammusic.feature.library.LibraryGroupMode
 import com.sharpcj.dreammusic.feature.library.LibraryScreen
 import com.sharpcj.dreammusic.feature.library.LibraryViewModel
+import com.sharpcj.dreammusic.feature.library.LocalMusicScreen
 import com.sharpcj.dreammusic.feature.player.MiniPlayer
 import com.sharpcj.dreammusic.feature.player.PlayerScreen
 import com.sharpcj.dreammusic.feature.player.PlayerViewModel
@@ -83,6 +84,11 @@ fun DreamMusicApp(
                 entry<DreamMusicNavKey.Library> {
                     LibraryScreen(
                         onOpenPlayer = openPlayer,
+                        onOpenLocalMusic = {
+                            if (backStack.lastOrNull() !is DreamMusicNavKey.LocalMusic) {
+                                backStack.add(DreamMusicNavKey.LocalMusic)
+                            }
+                        },
                         onOpenRecentPlays = openRecentPlays,
                         onOpenFavoriteSongs = openFavoriteSongs,
                         onOpenGroup = { groupMode, groupTitle ->
@@ -99,6 +105,21 @@ fun DreamMusicApp(
                 entry<DreamMusicNavKey.Discover> { DiscoverScreen() }
                 entry<DreamMusicNavKey.Search> { SearchScreen(onOpenPlayer = openPlayer) }
                 entry<DreamMusicNavKey.Settings> { SettingsScreen() }
+                entry<DreamMusicNavKey.LocalMusic> {
+                    LocalMusicScreen(
+                        onBack = { backStack.removeLastOrNull() },
+                        onOpenPlayer = openPlayer,
+                        onOpenGroup = { groupMode, groupTitle ->
+                            backStack.add(
+                                DreamMusicNavKey.LibraryGroupDetail(
+                                    groupModeName = groupMode.name,
+                                    groupTitle = groupTitle,
+                                ),
+                            )
+                        },
+                        viewModel = libraryViewModel,
+                    )
+                }
                 entry<DreamMusicNavKey.RecentPlays> {
                     RecentPlaysScreen(
                         onBack = { backStack.removeLastOrNull() },

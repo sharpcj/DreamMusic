@@ -33,6 +33,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +59,7 @@ private val SecondaryText = Color(0xFF8E8E93)
 @Composable
 fun LibraryScreen(
     onOpenPlayer: () -> Unit,
+    onOpenLocalMusic: () -> Unit,
     onOpenRecentPlays: () -> Unit,
     onOpenFavoriteSongs: () -> Unit,
     onOpenGroup: (LibraryGroupMode, String) -> Unit,
@@ -112,15 +116,7 @@ fun LibraryScreen(
                 favoriteCount = uiState.favoriteSongIds.size,
                 recentCount = null,
                 downloadCount = null,
-                onOpenLocal = {
-                    if (uiState.songs.isEmpty()) {
-                        if (viewModel.hasMediaPermission()) {
-                            viewModel.refreshLocalSongs()
-                        } else {
-                            permissionLauncher.launch(viewModel.mediaPermission)
-                        }
-                    }
-                },
+                onOpenLocal = onOpenLocalMusic,
                 onOpenRecentPlays = onOpenRecentPlays,
                 onOpenFavoriteSongs = onOpenFavoriteSongs,
             )
@@ -679,6 +675,365 @@ private fun SongRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun LocalMusicScreen(
+    onBack: () -> Unit,
+    onOpenPlayer: () -> Unit,
+    onOpenGroup: (LibraryGroupMode, String) -> Unit,
+    viewModel: LibraryViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var selectedTab by remember { mutableStateOf("单曲") }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            viewModel.refreshLocalSongs()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (viewModel.hasMediaPermission()) {
+            viewModel.refreshLocalSongs()
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PageBackground),
+    ) {
+        LegacyLocalMusicTopBar(onBack = onBack)
+        LegacyLocalTabs(selectedTab = selectedTab, onTabSelected = { selectedTab = it })
+
+        when (selectedTab) {
+            "单曲" -> LocalSongsTab(
+                uiState = uiState,
+                onRefresh = {
+                    if (viewModel.hasMediaPermission()) {
+                        viewModel.refreshLocalSongs()
+                    } else {
+                        permissionLauncher.launch(viewModel.mediaPermission)
+                    }
+                },
+                onSongClick = viewModel::play,
+                onToggleFavorite = viewModel::toggleFavorite,
+            )
+            "歌手" -> LocalGroupedTab(
+                emptyMessage = "扫描本地歌曲后，会按歌手整理到这里。",
+                groups = uiState.songs.groupBy { it.artist.ifBlank { "未知歌手" } },
+                mode = LibraryGroupMode.Artist,
+                onOpenGroup = onOpenGroup,
+            )
+            "专辑" -> LocalGroupedTab(
+                emptyMessage = "扫描本地歌曲后，会按专辑整理到这里。",
+                groups = uiState.songs.groupBy { it.album.ifBlank { "未知专辑" } },
+                mode = LibraryGroupMode.Album,
+                onOpenGroup = onOpenGroup,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LegacyLocalMusicTopBar(onBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .background(DreamGreen),
+    ) {
+        Image(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 16.dp)
+                .size(28.dp)
+                .clickable(onClick = onBack),
+            painter = painterResource(R.mipmap.back),
+            contentDescription = "返回",
+        )
+        Text(
+            modifier = Modifier.align(Alignment.Center),
+            text = "本地歌曲",
+            color = Color.White,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun LegacyLocalTabs(selectedTab: String, onTabSelected: (String) -> Unit) {
+    val tabs = listOf("单曲", "歌手", "专辑")
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White),
+    ) {
+        tabs.forEach { tab ->
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onTabSelected(tab) }
+                    .padding(top = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = tab,
+                    color = if (selectedTab == tab) DreamGreen else Color(0xFF444444),
+                    fontSize = 16.sp,
+                    fontWeight = if (selectedTab == tab) FontWeight.SemiBold else FontWeight.Normal,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Box(
+                    modifier = Modifier
+                        .height(3.dp)
+                        .width(32.dp)
+                        .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp))
+                        .background(if (selectedTab == tab) DreamGreen else Color.Transparent),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocalSongsTab(
+    uiState: LibraryUiState,
+    onRefresh: () -> Unit,
+    onSongClick: (LocalSong) -> Unit,
+    onToggleFavorite: (LocalSong) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item { LegacyLocalSearchBox() }
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "${uiState.songs.size} 首本地歌曲",
+                    color = SecondaryText,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Surface(
+                    modifier = Modifier.clickable(enabled = !uiState.isRefreshing, onClick = onRefresh),
+                    shape = RoundedCornerShape(999.dp),
+                    color = DreamGreen.copy(alpha = 0.12f),
+                ) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        text = if (uiState.isRefreshing) "扫描中..." else "重新扫描",
+                        color = DreamGreen,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+        }
+        if (uiState.songs.isEmpty()) {
+            item { EmptyLibraryMessage(uiState.errorMessage ?: "点击“重新扫描”读取设备上的音频文件。") }
+        } else {
+            items(items = uiState.songs, key = { it.id }) { song ->
+                LegacyLocalSongRow(
+                    song = song,
+                    isFavorite = song.id in uiState.favoriteSongIds,
+                    onClick = { onSongClick(song) },
+                    onToggleFavorite = { onToggleFavorite(song) },
+                )
+            }
+        }
+        item { Spacer(modifier = Modifier.height(12.dp)) }
+    }
+}
+
+@Composable
+private fun LegacyLocalSearchBox() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(10.dp),
+        color = Color.White,
+        shape = RoundedCornerShape(12.dp),
+        shadowElevation = 1.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Image(
+                modifier = Modifier.size(18.dp),
+                painter = painterResource(R.mipmap.search1),
+                contentDescription = null,
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "搜索本地歌曲",
+                color = Color(0xFFB8B8B8),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LegacyLocalSongRow(
+    song: LocalSong,
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        color = Color.White,
+        shadowElevation = 1.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 12.dp, top = 10.dp, end = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = song.title,
+                    color = Color.Black,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(
+                    modifier = Modifier.padding(top = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Image(
+                        modifier = Modifier.size(14.dp),
+                        painter = painterResource(R.mipmap.known_artist_icon),
+                        contentDescription = null,
+                    )
+                    Text(
+                        modifier = Modifier.padding(start = 5.dp),
+                        text = "${song.artist} · ${song.album}",
+                        color = SecondaryText,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        modifier = Modifier.padding(start = 8.dp),
+                        text = formatDuration(song.durationMillis),
+                        color = SecondaryText,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+            Surface(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .clickable(onClick = onToggleFavorite),
+                shape = RoundedCornerShape(999.dp),
+                color = if (isFavorite) DreamGreen.copy(alpha = 0.12f) else PageBackground,
+            ) {
+                Text(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                    text = if (isFavorite) "已喜欢" else "喜欢",
+                    color = if (isFavorite) DreamGreen else SecondaryText,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+            Image(
+                modifier = Modifier.size(18.dp),
+                painter = painterResource(R.mipmap.more_version_arrow),
+                contentDescription = null,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LocalGroupedTab(
+    emptyMessage: String,
+    groups: Map<String, List<LocalSong>>,
+    mode: LibraryGroupMode,
+    onOpenGroup: (LibraryGroupMode, String) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item { LegacyLocalSearchBox() }
+        if (groups.isEmpty()) {
+            item { EmptyLibraryMessage(emptyMessage) }
+        } else {
+            items(items = groups.entries.sortedBy { it.key }, key = { it.key }) { entry ->
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable { onOpenGroup(mode, entry.key) },
+                    color = Color.White,
+                    shadowElevation = 1.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(DreamGreen.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = if (mode == LibraryGroupMode.Artist) "人" else "辑",
+                                color = DreamGreen,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 12.dp),
+                        ) {
+                            Text(
+                                text = entry.key,
+                                color = Color.Black,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                modifier = Modifier.padding(top = 3.dp),
+                                text = "${entry.value.size} 首歌曲",
+                                color = SecondaryText,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        Image(
+                            modifier = Modifier.size(18.dp),
+                            painter = painterResource(R.mipmap.more_version_arrow),
+                            contentDescription = null,
+                        )
+                    }
+                }
+            }
+        }
+        item { Spacer(modifier = Modifier.height(12.dp)) }
     }
 }
 
