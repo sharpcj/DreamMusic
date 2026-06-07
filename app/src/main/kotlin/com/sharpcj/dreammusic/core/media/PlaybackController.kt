@@ -37,6 +37,7 @@ class PlaybackController @Inject constructor(
             .putStringArrayListExtra(EXTRA_CONTENT_URIS, ArrayList(songs.map { it.contentUri.toString() }))
             .putStringArrayListExtra(EXTRA_TITLES, ArrayList(songs.map { it.title }))
             .putStringArrayListExtra(EXTRA_ARTISTS, ArrayList(songs.map { it.artist }))
+            .putStringArrayListExtra(EXTRA_SONG_IDS, ArrayList(songs.map { it.id.toString() }))
             .putExtra(EXTRA_START_INDEX, clampedStartIndex)
 
         ContextCompat.startForegroundService(context, intent)
@@ -51,6 +52,7 @@ class PlaybackController @Inject constructor(
         const val EXTRA_CONTENT_URIS = "extra.CONTENT_URIS"
         const val EXTRA_TITLES = "extra.TITLES"
         const val EXTRA_ARTISTS = "extra.ARTISTS"
+        const val EXTRA_SONG_IDS = "extra.SONG_IDS"
         const val EXTRA_START_INDEX = "extra.START_INDEX"
     }
 }

@@ -19,10 +19,13 @@ data class PlayerUiState(
     val currentPositionMillis: Long = 0L,
     val isControllerReady: Boolean = false,
     val errorMessage: String? = null,
+    val isFavorite: Boolean = false,
+    val currentSongId: Long? = null,
 )
 
 data class PlayerQueueItem(
     val mediaId: String,
+    val songId: Long,
     val title: String,
     val artist: String,
     val isCurrent: Boolean,

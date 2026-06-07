@@ -83,6 +83,7 @@ fun PlayerScreen(
                 onNext = viewModel::skipToNext,
                 onStop = viewModel::stop,
                 onRefresh = viewModel::refresh,
+                onToggleFavorite = viewModel::toggleFavorite,
             )
         }
 
@@ -164,6 +165,7 @@ private fun PlaybackControls(
     onNext: () -> Unit,
     onStop: () -> Unit,
     onRefresh: () -> Unit,
+    onToggleFavorite: () -> Unit,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -201,6 +203,12 @@ private fun PlaybackControls(
             Text("停止")
         }
         OutlinedButton(onClick = onRefresh) { Text("刷新") }
+        OutlinedButton(
+            onClick = onToggleFavorite,
+            enabled = uiState.isControllerReady && uiState.currentSongId != null,
+        ) {
+            Text(if (uiState.isFavorite) "已喜欢" else "喜欢")
+        }
     }
 
     Row(

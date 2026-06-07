@@ -9,6 +9,8 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.sharpcj.dreammusic.core.data.FavoriteSongsRepository
+import com.sharpcj.dreammusic.core.data.LocalMusicRepository
 import com.sharpcj.dreammusic.core.media.DreamMusicPlaybackService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -23,6 +25,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     application: Application,
+    private val favoriteSongsRepository: FavoriteSongsRepository,
+    private val localMusicRepository: LocalMusicRepository,
 ) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
@@ -30,6 +34,8 @@ class PlayerViewModel @Inject constructor(
     private var controllerFuture: com.google.common.util.concurrent.ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
     private var progressJob: Job? = null
+    private var favoriteSongIds: Set<Long> = emptySet()
+    private var localSongsById = emptyMap<Long, com.sharpcj.dreammusic.core.model.LocalSong>()
 
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -38,6 +44,8 @@ class PlayerViewModel @Inject constructor(
     }
 
     init {
+        observeFavorites()
+        observeLocalSongs()
         connectController()
     }
 
@@ -113,6 +121,15 @@ class PlayerViewModel @Inject constructor(
         updateFrom(player)
     }
 
+    fun toggleFavorite() {
+        val currentSongId = _uiState.value.currentSongId ?: return
+        val song = localSongsById[currentSongId] ?: return
+        val isFavorite = currentSongId in favoriteSongIds
+        viewModelScope.launch {
+            favoriteSongsRepository.toggleFavorite(song, isFavorite)
+        }
+    }
+
     fun refresh() {
         controller?.let(::updateFrom)
     }
@@ -124,6 +141,24 @@ class PlayerViewModel @Inject constructor(
         controller = null
         controllerFuture = null
         super.onCleared()
+    }
+
+    private fun observeFavorites() {
+        viewModelScope.launch {
+            favoriteSongsRepository.observeFavoriteSongIds().collect { ids ->
+                favoriteSongIds = ids
+                controller?.let(::updateFrom)
+            }
+        }
+    }
+
+    private fun observeLocalSongs() {
+        viewModelScope.launch {
+            localMusicRepository.observeLocalSongs().collect { songs ->
+                localSongsById = songs.associateBy { it.id }
+                controller?.let(::updateFrom)
+            }
+        }
     }
 
     private fun connectController() {
@@ -167,6 +202,8 @@ class PlayerViewModel @Inject constructor(
     private fun updateFrom(player: Player) {
         val metadata = player.mediaMetadata
         val currentIndex = player.currentMediaItemIndex.takeIf { it >= 0 } ?: -1
+        val queueItems = player.queueItems(currentIndex)
+        val currentSongId = queueItems.getOrNull(currentIndex)?.songId?.takeIf { it > 0L }
         _uiState.value = PlayerUiState(
             title = metadata.displayTitleOrTitle(),
             artist = metadata.artist?.toString().orEmpty(),
@@ -175,11 +212,13 @@ class PlayerViewModel @Inject constructor(
             canSkipToPrevious = player.hasPreviousMediaItem(),
             canSkipToNext = player.hasNextMediaItem(),
             playbackMode = currentPlaybackMode(player),
-            queue = player.queueItems(currentIndex),
+            queue = queueItems,
             currentQueueIndex = currentIndex,
             durationMillis = player.duration.takeIf { it > 0 } ?: 0L,
             currentPositionMillis = player.currentPosition.coerceAtLeast(0L),
             isControllerReady = true,
+            isFavorite = currentSongId in favoriteSongIds,
+            currentSongId = currentSongId,
         )
     }
 
@@ -193,8 +232,10 @@ class PlayerViewModel @Inject constructor(
         (0 until mediaItemCount).map { index ->
             val item = getMediaItemAt(index)
             val metadata = item.mediaMetadata
+            val songId = item.mediaId.toLongOrNull() ?: 0L
             PlayerQueueItem(
                 mediaId = item.mediaId,
+                songId = songId,
                 title = metadata.displayTitleOrTitle(),
                 artist = metadata.artist?.toString().orEmpty(),
                 isCurrent = index == currentIndex,

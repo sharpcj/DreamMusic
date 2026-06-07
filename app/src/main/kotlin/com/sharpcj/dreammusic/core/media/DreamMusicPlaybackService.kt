@@ -60,18 +60,24 @@ class DreamMusicPlaybackService : MediaSessionService() {
         val uri = intent.getStringExtra(PlaybackController.EXTRA_CONTENT_URI) ?: return
         val title = intent.getStringExtra(PlaybackController.EXTRA_TITLE).orEmpty()
         val artist = intent.getStringExtra(PlaybackController.EXTRA_ARTIST).orEmpty()
-        playMediaItems(listOf(buildLocalSongMediaItem(uri = uri, title = title, artist = artist)), startIndex = 0)
+        playMediaItems(
+            listOf(buildLocalSongMediaItem(uri = uri, title = title, artist = artist, songId = 0L)),
+            startIndex = 0,
+        )
     }
 
     private fun playLocalQueue(intent: android.content.Intent) {
         val uris = intent.getStringArrayListExtra(PlaybackController.EXTRA_CONTENT_URIS).orEmpty()
         val titles = intent.getStringArrayListExtra(PlaybackController.EXTRA_TITLES).orEmpty()
         val artists = intent.getStringArrayListExtra(PlaybackController.EXTRA_ARTISTS).orEmpty()
+        val songIds = intent.getStringArrayListExtra(PlaybackController.EXTRA_SONG_IDS).orEmpty()
+
         val mediaItems = uris.mapIndexed { index, uri ->
             buildLocalSongMediaItem(
                 uri = uri,
                 title = titles.getOrNull(index).orEmpty(),
                 artist = artists.getOrNull(index).orEmpty(),
+                songId = songIds.getOrNull(index)?.toLong() ?: 0L,
             )
         }
         if (mediaItems.isEmpty()) return
@@ -81,9 +87,9 @@ class DreamMusicPlaybackService : MediaSessionService() {
         playMediaItems(mediaItems = mediaItems, startIndex = startIndex)
     }
 
-    private fun buildLocalSongMediaItem(uri: String, title: String, artist: String): MediaItem =
+    private fun buildLocalSongMediaItem(uri: String, title: String, artist: String, songId: Long): MediaItem =
         MediaItem.Builder()
-            .setMediaId(uri)
+            .setMediaId(songId.toString())
             .setUri(uri)
             .setMediaMetadata(
                 MediaMetadata.Builder()
