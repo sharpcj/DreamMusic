@@ -1,7 +1,11 @@
 package com.sharpcj.dreammusic.feature.player
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -143,28 +148,7 @@ private fun PlayerCenter(uiState: PlayerUiState, modifier: Modifier = Modifier) 
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .size(238.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(190.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.30f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "♪",
-                    color = Color.White.copy(alpha = 0.92f),
-                    fontSize = 72.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
+        RotatingAlbumArtwork(isPlaying = uiState.isPlaying)
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = if (uiState.isPlaying) "正在播放" else "轻触播放键开始播放",
@@ -177,6 +161,58 @@ private fun PlayerCenter(uiState: PlayerUiState, modifier: Modifier = Modifier) 
                 text = message,
                 color = Color(0xFFFFD8D8),
                 style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RotatingAlbumArtwork(isPlaying: Boolean) {
+    val rotation = remember { Animatable(0f) }
+
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (true) {
+                val target = rotation.value + 360f
+                rotation.animateTo(
+                    targetValue = target,
+                    animationSpec = tween(durationMillis = 18_000, easing = LinearEasing),
+                )
+                rotation.snapTo(rotation.value % 360f)
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .size(250.dp)
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.35f))
+            .border(width = 5.dp, color = Color.Black.copy(alpha = 0.86f), shape = CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            modifier = Modifier
+                .size(240.dp)
+                .graphicsLayer { rotationZ = rotation.value }
+                .clip(CircleShape),
+            painter = painterResource(R.mipmap.minibar_album_default),
+            contentDescription = "旋转专辑封面",
+            contentScale = ContentScale.Crop,
+        )
+        Box(
+            modifier = Modifier
+                .size(58.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.38f))
+                .border(width = 2.dp, color = Color.White.copy(alpha = 0.18f), shape = CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.28f)),
             )
         }
     }
@@ -208,7 +244,7 @@ private fun LegacyPlaybackControls(
                 .padding(horizontal = 15.dp)
                 .size(70.dp)
                 .clickable(enabled = uiState.isControllerReady, onClick = onPlayPause),
-            painter = painterResource(R.mipmap.cz6),
+            painter = painterResource(if (uiState.isPlaying) R.mipmap.cz8 else R.mipmap.cz6),
             contentDescription = if (uiState.isPlaying) "暂停" else "播放",
         )
         Image(
