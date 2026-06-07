@@ -15,7 +15,6 @@ import androidx.navigation3.ui.NavDisplay
 import com.sharpcj.dreammusic.core.permissions.NotificationPermissionEffect
 import com.sharpcj.dreammusic.feature.discover.DiscoverScreen
 import com.sharpcj.dreammusic.feature.favorite.FavoriteSongsScreen
-import com.sharpcj.dreammusic.feature.home.HomeScreen
 import com.sharpcj.dreammusic.feature.library.LibraryGroupDetailScreen
 import com.sharpcj.dreammusic.feature.library.LibraryGroupMode
 import com.sharpcj.dreammusic.feature.library.LibraryScreen
@@ -97,12 +96,7 @@ fun DreamMusicApp(
                         viewModel = libraryViewModel,
                     )
                 }
-                entry<DreamMusicNavKey.Discover> {
-                    HomeScreen(
-                        onBack = { backStack.removeLastOrNull() },
-                        onOpenPlayer = openPlayer,
-                    )
-                }
+                entry<DreamMusicNavKey.Discover> { DiscoverScreen() }
                 entry<DreamMusicNavKey.Search> { SearchScreen(onOpenPlayer = openPlayer) }
                 entry<DreamMusicNavKey.Settings> { SettingsScreen() }
                 entry<DreamMusicNavKey.RecentPlays> {
