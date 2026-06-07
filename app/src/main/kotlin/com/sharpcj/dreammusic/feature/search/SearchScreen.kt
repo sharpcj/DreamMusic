@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +58,9 @@ fun SearchScreen(
             uiState = uiState,
             onSongClick = viewModel::play,
             onToggleFavorite = viewModel::toggleFavorite,
+            onHistoryKeywordClick = viewModel::applyHistoryKeyword,
+            onDeleteHistoryKeyword = viewModel::deleteHistoryKeyword,
+            onClearHistory = viewModel::clearHistory,
             onOpenPlayer = onOpenPlayer,
         )
     }
@@ -93,6 +98,9 @@ private fun SearchContent(
     uiState: SearchUiState,
     onSongClick: (LocalSong) -> Unit,
     onToggleFavorite: (LocalSong) -> Unit,
+    onHistoryKeywordClick: (String) -> Unit,
+    onDeleteHistoryKeyword: (String) -> Unit,
+    onClearHistory: () -> Unit,
     onOpenPlayer: () -> Unit,
 ) {
     when {
@@ -100,9 +108,12 @@ private fun SearchContent(
             title = "本地音乐库还是空的",
             message = "先到“音乐库”扫描本地音乐，搜索页会复用同一份本地歌曲缓存。",
         )
-        !uiState.hasQuery -> SearchEmptyMessage(
-            title = "输入关键词开始搜索",
-            message = "当前音乐库共有 ${uiState.allSongs.size} 首歌曲。支持按歌曲名和艺术家过滤。",
+        !uiState.hasQuery -> SearchStartMessage(
+            songCount = uiState.allSongs.size,
+            recentKeywords = uiState.recentKeywords.map { it.keyword },
+            onHistoryKeywordClick = onHistoryKeywordClick,
+            onDeleteHistoryKeyword = onDeleteHistoryKeyword,
+            onClearHistory = onClearHistory,
         )
         uiState.hasResults -> SearchResults(
             query = uiState.query.trim(),
@@ -194,6 +205,59 @@ private fun SearchSongRow(
         }
         OutlinedButton(modifier = Modifier.padding(start = 12.dp), onClick = onToggleFavorite) {
             Text(if (isFavorite) "已喜欢" else "喜欢")
+        }
+    }
+}
+
+@Composable
+private fun SearchStartMessage(
+    songCount: Int,
+    recentKeywords: List<String>,
+    onHistoryKeywordClick: (String) -> Unit,
+    onDeleteHistoryKeyword: (String) -> Unit,
+    onClearHistory: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 80.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(text = "输入关键词开始搜索", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(
+            modifier = Modifier.padding(top = 8.dp),
+            text = "当前音乐库共有 $songCount 首歌曲。支持按歌曲名和艺术家过滤。",
+            style = MaterialTheme.typography.bodyMedium,
+        )
+
+        if (recentKeywords.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(text = "搜索历史", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                TextButton(onClick = onClearHistory) { Text("清空历史") }
+            }
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(recentKeywords, key = { it }) { keyword ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AssistChip(
+                            onClick = { onHistoryKeywordClick(keyword) },
+                            label = { Text(keyword) },
+                        )
+                        TextButton(onClick = { onDeleteHistoryKeyword(keyword) }) {
+                            Text("删除")
+                        }
+                    }
+                }
+            }
         }
     }
 }

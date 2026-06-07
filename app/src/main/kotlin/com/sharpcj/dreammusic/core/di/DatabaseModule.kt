@@ -8,6 +8,7 @@ import com.sharpcj.dreammusic.core.database.DreamMusicDatabase
 import com.sharpcj.dreammusic.core.database.FavoriteSongDao
 import com.sharpcj.dreammusic.core.database.LocalSongDao
 import com.sharpcj.dreammusic.core.database.RecentPlayedSongDao
+import com.sharpcj.dreammusic.core.database.SearchHistoryKeywordDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,7 +27,7 @@ object DatabaseModule {
         context,
         DreamMusicDatabase::class.java,
         "dream_music.db",
-    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
 
     @Provides
     fun provideLocalSongDao(database: DreamMusicDatabase): LocalSongDao = database.localSongDao()
@@ -37,6 +38,10 @@ object DatabaseModule {
 
     @Provides
     fun provideFavoriteSongDao(database: DreamMusicDatabase): FavoriteSongDao = database.favoriteSongDao()
+
+    @Provides
+    fun provideSearchHistoryKeywordDao(database: DreamMusicDatabase): SearchHistoryKeywordDao =
+        database.searchHistoryKeywordDao()
 
     private val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(db: SupportSQLiteDatabase) {
@@ -72,6 +77,20 @@ object DatabaseModule {
                     `sizeBytes` INTEGER NOT NULL,
                     `favoritedAtMillis` INTEGER NOT NULL,
                     PRIMARY KEY(`songId`)
+                )
+                """.trimIndent(),
+            )
+        }
+    }
+
+    private val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `search_history_keywords` (
+                    `keyword` TEXT NOT NULL,
+                    `searchedAtMillis` INTEGER NOT NULL,
+                    PRIMARY KEY(`keyword`)
                 )
                 """.trimIndent(),
             )

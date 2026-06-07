@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sharpcj.dreammusic.core.data.FavoriteSongsRepository
 import com.sharpcj.dreammusic.core.data.LocalMusicRepository
+import com.sharpcj.dreammusic.core.data.SearchHistoryRepository
 import com.sharpcj.dreammusic.core.media.PlaybackController
 import com.sharpcj.dreammusic.core.model.LocalSong
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 class SearchViewModel @Inject constructor(
     localMusicRepository: LocalMusicRepository,
     private val favoriteSongsRepository: FavoriteSongsRepository,
+    private val searchHistoryRepository: SearchHistoryRepository,
     private val playbackController: PlaybackController,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
@@ -27,7 +29,8 @@ class SearchViewModel @Inject constructor(
         query,
         localMusicRepository.observeLocalSongs(),
         favoriteSongsRepository.observeFavoriteSongIds(),
-    ) { rawQuery, songs, favoriteSongIds ->
+        searchHistoryRepository.observeRecentKeywords(),
+    ) { rawQuery, songs, favoriteSongIds, recentKeywords ->
         val normalizedQuery = rawQuery.trim()
         val results = if (normalizedQuery.isBlank()) {
             emptyList()
@@ -39,6 +42,7 @@ class SearchViewModel @Inject constructor(
             allSongs = songs,
             results = results,
             favoriteSongIds = favoriteSongIds,
+            recentKeywords = recentKeywords,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -54,10 +58,32 @@ class SearchViewModel @Inject constructor(
         query.value = ""
     }
 
+    fun applyHistoryKeyword(keyword: String) {
+        query.value = keyword
+        viewModelScope.launch {
+            searchHistoryRepository.record(keyword)
+        }
+    }
+
+    fun deleteHistoryKeyword(keyword: String) {
+        viewModelScope.launch {
+            searchHistoryRepository.delete(keyword)
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            searchHistoryRepository.clear()
+        }
+    }
+
     fun play(song: LocalSong) {
         val songs = uiState.value.results.ifEmpty { listOf(song) }
         val startIndex = songs.indexOfFirst { it.id == song.id }.takeIf { it >= 0 } ?: 0
         playbackController.playQueue(songs = songs, startIndex = startIndex)
+        viewModelScope.launch {
+            searchHistoryRepository.record(uiState.value.query)
+        }
     }
 
     fun toggleFavorite(song: LocalSong) {
